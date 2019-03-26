@@ -22,10 +22,10 @@
 #include <linux/soundcard.h>
 */
 
-#define CPU_NBR 4
-#define BAR_HEIGHT 15
-#define BAT_NOW_FILE "/sys/class/power_supply/BAT0/charge_now"
-#define BAT_FULL_FILE "/sys/class/power_supply/BAT0/charge_full"
+#define CPU_NBR 9
+#define BAR_HEIGHT 20
+#define BAT_NOW_FILE "/sys/class/power_supply/BAT0/energy_now"
+#define BAT_FULL_FILE "/sys/class/power_supply/BAT0/energy_full"
 #define BAT_STATUS_FILE "/sys/class/power_supply/BAT0/status"
 
 #define TEMP_SENSOR_FILE "/sys/class/hwmon/hwmon1/temp1_input"
@@ -69,8 +69,9 @@ main(void)
   int mem_percent;
   char *mem_bar;
 
-  char *fg_color = "#EEEEEE";
+  char *fg_color = "#bbbbbb";
   char cpu_color[8];
+  char mem_color[8];
 
   char bat0[256];
   
@@ -89,7 +90,8 @@ main(void)
     {
 
 	  mem_percent = getMemPercent();
-	  mem_bar = hBar(mem_percent, 20, 9,  "#FF0000", "#444444");
+      percentColorGeneric(mem_color, mem_percent, 1);
+	  mem_bar = hBar(mem_percent, 20, 9,  mem_color, "#444444");
       temp = getTemperature();
       datetime = getDateTime();
       getBatteryBar(bat0, 256, 30, 11);
@@ -105,13 +107,17 @@ main(void)
       int ret = snprintf(
                status, 
                MSIZE, 
-               "^c%s^ [VOL %d%%] [CPU^f1^%s^f4^%s^f4^%s^f4^%s^f3^^c%s^] [MEM^f1^%s^f20^^c%s^] [W %d] [TEMP %d%cC] %s^c%s^ %s ", 
+               "^c%s^ [VOL %d%%] [CPU^f3^%s^f4^%s^f4^%s^f4^%s^f4^%s^f4^%s^f4^%s^f4^%s^f3^^c%s^] [MEM^f3^%s^f20^^c%s^] [W %d] [TEMP %d%cC] %s^c%s^ %s ", 
              fg_color,
                vol, 
-               cpu_bar[0],
                cpu_bar[1],  
                cpu_bar[2],  
                cpu_bar[3],
+               cpu_bar[4],
+               cpu_bar[5],  
+               cpu_bar[6],  
+               cpu_bar[7],
+               cpu_bar[8],
                fg_color,
                mem_bar,
                fg_color,
@@ -224,7 +230,7 @@ int getBatteryBar(char *string, size_t size, int w, int h)
   int percent = getBattery();
   
   char *bg_color = "#444444";
-  char *border_color = "#EEEEEE";
+  char *border_color = "#bbbbbb";
   char fg_color[8];
   if(getBatteryStatus())
 	  memcpy(fg_color, border_color, 8);
