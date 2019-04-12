@@ -3,7 +3,7 @@ CC=gcc
 # Extension
 EXT=.c
 # Library flags : -lgl, -lpthread, ...
-LDFLAGS= -lX11 -lasound 
+LDFLAGS= -lX11 -lasound -ljson-c
 # Debug flags
 DEBUG_FLAGS= -DDEBUG=1 -W -Wall -ansi -pedantic -g
 # Other flags

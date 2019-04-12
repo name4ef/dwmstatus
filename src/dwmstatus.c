@@ -15,6 +15,12 @@
 #include <time.h>
 #include <X11/Xlib.h>
 
+/* json-c */
+#include <stddef.h>
+#include <string.h>
+#include <json-c/json.h>
+
+
 /* Alsa */
 #include <alsa/asoundlib.h>
 #include <alsa/mixer.h>
@@ -22,20 +28,24 @@
 #include <linux/soundcard.h>
 */
 
-#define CPU_NBR 4
-#define BAR_HEIGHT 15
-#define BAT_NOW_FILE "/sys/class/power_supply/BAT0/charge_now"
-#define BAT_FULL_FILE "/sys/class/power_supply/BAT0/charge_full"
+#define CPU_NBR 9
+#define BAR_HEIGHT 20
+#define BAT_NOW_FILE "/sys/class/power_supply/BAT0/energy_now"
+#define BAT_FULL_FILE "/sys/class/power_supply/BAT0/energy_full"
 #define BAT_STATUS_FILE "/sys/class/power_supply/BAT0/status"
+#define BRIGHT_NOW_FILE "/sys/class/backlight/intel_backlight/brightness"
+#define BRIGHT_FULL_FILE "/sys/class/backlight/intel_backlight/max_brightness"
 
 #define TEMP_SENSOR_FILE "/sys/class/hwmon/hwmon1/temp1_input"
 #define MEMINFO_FILE "/proc/meminfo"
 
 int   getBattery();
+int   getBrightness();
 int   getBatteryStatus();
 int   getMemPercent();
 void  getCpuUsage(int *cpu_percent);
 char* getDateTime();
+char* getActiveTask();
 float getFreq(char *file);
 int   getTemperature();
 int   getVolume();
@@ -63,14 +73,16 @@ main(void)
   
   int cpu_percent[CPU_NBR];
   char *datetime;
-  int temp, vol, wifi;
+  char *task;
+  int temp, vol, wifi, bright;
   char *cpu_bar[CPU_NBR];
 
   int mem_percent;
   char *mem_bar;
 
-  char *fg_color = "#EEEEEE";
+  char *fg_color = "#839496";
   char cpu_color[8];
+  char mem_color[8];
 
   char bat0[256];
   
@@ -89,13 +101,16 @@ main(void)
     {
 
 	  mem_percent = getMemPercent();
-	  mem_bar = hBar(mem_percent, 20, 9,  "#FF0000", "#444444");
+      percentColorGeneric(mem_color, mem_percent, 1);
+	  mem_bar = hBar(mem_percent, 20, 9,  mem_color, "#444444");
       temp = getTemperature();
       datetime = getDateTime();
+      task = getActiveTask();
       getBatteryBar(bat0, 256, 30, 11);
       vol = getVolume();
       getCpuUsage(cpu_percent);
       wifi = getWifiPercent();
+      bright = getBrightness();
       for(int i = 0; i < CPU_NBR; ++i)
       {
         percentColorGeneric(cpu_color, cpu_percent[i], 1);
@@ -105,13 +120,19 @@ main(void)
       int ret = snprintf(
                status, 
                MSIZE, 
-               "^c%s^ [VOL %d%%] [CPU^f1^%s^f4^%s^f4^%s^f4^%s^f3^^c%s^] [MEM^f1^%s^f20^^c%s^] [W %d] [TEMP %d%cC] %s^c%s^ %s ", 
+               "^c%s^%s[BRIGHT %d%%] [VOL %d%%] [CPU^f3^%s^f4^%s^f4^%s^f4^%s^f4^%s^f4^%s^f4^%s^f4^%s^f3^^c%s^] [MEM^f3^%s^f20^^c%s^] [W %d] [TEMP %d%cC] %s^c%s^ %s ", 
              fg_color,
+             task,
+             bright,
                vol, 
-               cpu_bar[0],
                cpu_bar[1],  
                cpu_bar[2],  
                cpu_bar[3],
+               cpu_bar[4],
+               cpu_bar[5],  
+               cpu_bar[6],  
+               cpu_bar[7],
+               cpu_bar[8],
                fg_color,
                mem_bar,
                fg_color,
@@ -123,6 +144,7 @@ main(void)
 	fprintf(stderr, "error: buffer too small %d/%d\n", MSIZE, ret);
 
       free(datetime);
+      free(task);
       for(int i = 0; i < CPU_NBR; ++i)
 	      free(cpu_bar[i]);
 
@@ -224,7 +246,7 @@ int getBatteryBar(char *string, size_t size, int w, int h)
   int percent = getBattery();
   
   char *bg_color = "#444444";
-  char *border_color = "#EEEEEE";
+  char *border_color = "#839496";
   char fg_color[8];
   if(getBatteryStatus())
 	  memcpy(fg_color, border_color, 8);
@@ -266,6 +288,35 @@ getBattery()
   fclose(fd);
   
   return ((float)energy_now  / (float)energy_full) * 100;
+}
+
+int 
+getBrightness()
+{
+  FILE *fd;
+  int brightness_now;
+
+  static int brightness_full = -1;
+  if(brightness_full == -1)
+    {
+      fd = fopen(BRIGHT_FULL_FILE, "r");
+      if(fd == NULL) {
+        fprintf(stderr, "Error opening brightness_full.\n");
+        return -1;
+      }
+      fscanf(fd, "%d", &brightness_full);
+      fclose(fd);
+    }
+  
+  fd = fopen(BRIGHT_NOW_FILE, "r");
+  if(fd == NULL) {
+    fprintf(stderr, "Error opening brightness_now.\n");
+    return -1;
+  }
+  fscanf(fd, "%d", &brightness_now);
+  fclose(fd);
+  
+  return ((float)brightness_now  / (float)brightness_full) * 100;
 }
 
 /** 
@@ -413,6 +464,68 @@ getDateTime()
     }
 	
   return buf;
+}
+
+char *concat(const char *s1, const char *s2)
+{
+    char *result = malloc(strlen(s1) + strlen(s2) + 1); // +1 for the null-terminator
+    strcpy(result, s1);
+    strcat(result, s2);
+
+    return result;
+}
+
+char *getActiveTask() 
+{
+    char *buf1, *buf2, *buf3;
+    buf1 = (char*) malloc(sizeof(char)*65);
+    buf2 = (char*) malloc(sizeof(char)*65);
+    buf3 = (char*) malloc(sizeof(char)*65);
+
+    char *description, *id, *start;
+    description = (char*) malloc(sizeof(char)*65);
+    id = (char*) malloc(sizeof(char)*65);
+    start = (char*) malloc(sizeof(char)*65);
+
+    FILE *fp = popen("task +ACTIVE export", "r");
+    char buffer[1024];
+    char *json_string = "";
+    while (fgets(buffer, sizeof(buffer), fp)) {
+        json_string = concat(json_string, buffer);
+    }
+    pclose(fp);
+
+    struct json_object *obj;
+    struct json_object *obj_desription;
+    struct json_object *obj_id;
+    struct json_object *obj_start;
+
+    obj = json_tokener_parse(json_string);
+    if (json_object_get_type(obj) == json_type_array) {
+        obj = json_object_array_get_idx(obj, 0);
+    } else if (json_object_get_type(obj) == json_type_object) {
+        printf("EROOR: json object - not array\n");
+    }
+
+    obj_desription = json_object_object_get(obj, "description");
+    obj_id = json_object_object_get(obj, "id");
+    obj_start = json_object_object_get(obj, "start");
+
+    if (obj == NULL) {
+        sprintf(buf3, "");
+    } else {
+        description = json_object_to_json_string(obj_desription);
+        id = json_object_to_json_string(obj_id);
+        start = json_object_to_json_string(obj_start);
+
+        sprintf(buf1, "%s", description);
+        snprintf(buf2, strlen(buf1) - 1, "%s", &buf1[1]);
+        sprintf(buf3, "[%s ^c#ffffff^%s^d^] ", id, buf2);
+        //sprintf(buf3, "[%s ^c#ffffff^%s^d^ %s] ", id, buf2, "1h9m");
+    }
+
+    //printf("%s\n", buf3);
+    return buf3;
 }
 
 int
