@@ -35,9 +35,9 @@
 #define BAT_STATUS_FILE "/sys/class/power_supply/BAT0/status"
 #define BRIGHT_NOW_FILE "/sys/class/backlight/intel_backlight/brightness"
 #define BRIGHT_FULL_FILE "/sys/class/backlight/intel_backlight/max_brightness"
-
 #define TEMP_SENSOR_FILE "/sys/class/hwmon/hwmon1/temp1_input"
 #define MEMINFO_FILE "/proc/meminfo"
+#define BUFFER_FOR_TASK 161 /* length of task name string in characters */
 
 int   getBattery();
 int   getBrightness();
@@ -478,14 +478,14 @@ char *concat(const char *s1, const char *s2)
 char *getActiveTask() 
 {
     char *buf1, *buf2, *buf3;
-    buf1 = (char*) malloc(sizeof(char)*65);
-    buf2 = (char*) malloc(sizeof(char)*65);
-    buf3 = (char*) malloc(sizeof(char)*65);
+    buf1 = (char*) malloc(sizeof(char)*BUFFER_FOR_TASK);
+    buf2 = (char*) malloc(sizeof(char)*BUFFER_FOR_TASK);
+    buf3 = (char*) malloc(sizeof(char)*BUFFER_FOR_TASK);
 
     char *description, *id, *start;
-    description = (char*) malloc(sizeof(char)*65);
-    id = (char*) malloc(sizeof(char)*65);
-    start = (char*) malloc(sizeof(char)*65);
+    description = (char*) malloc(sizeof(char)*BUFFER_FOR_TASK);
+    id = (char*) malloc(sizeof(char)*BUFFER_FOR_TASK);
+    start = (char*) malloc(sizeof(char)*BUFFER_FOR_TASK);
 
     FILE *fp = popen("task +ACTIVE export", "r");
     char buffer[1024];
