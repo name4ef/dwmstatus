@@ -80,7 +80,11 @@ main(void)
   int mem_percent;
   char *mem_bar;
 
+<<<<<<< HEAD
   char *fg_color = "#839496";
+=======
+  char *fg_color = "#bbbbbb";
+>>>>>>> master
   char cpu_color[8];
   char mem_color[8];
 
@@ -120,7 +124,11 @@ main(void)
       int ret = snprintf(
                status, 
                MSIZE, 
+<<<<<<< HEAD
                "^c%s^%s[BRIGHT %d%%] [VOL %d%%] [CPU^f3^%s^f4^%s^f4^%s^f4^%s^f4^%s^f4^%s^f4^%s^f4^%s^f3^^c%s^] [MEM^f3^%s^f20^^c%s^] [W %d] [TEMP %d%cC] %s^c%s^ %s ", 
+=======
+               "^c%s^ [VOL %d%%] [CPU^f3^%s^f4^%s^f4^%s^f4^%s^f4^%s^f4^%s^f4^%s^f4^%s^f3^^c%s^] [MEM^f3^%s^f20^^c%s^] [W %d] [TEMP %d%cC] %s^c%s^ %s ", 
+>>>>>>> master
              fg_color,
              task,
              bright,
@@ -246,7 +254,11 @@ int getBatteryBar(char *string, size_t size, int w, int h)
   int percent = getBattery();
   
   char *bg_color = "#444444";
+<<<<<<< HEAD
   char *border_color = "#839496";
+=======
+  char *border_color = "#bbbbbb";
+>>>>>>> master
   char fg_color[8];
   if(getBatteryStatus())
 	  memcpy(fg_color, border_color, 8);
