@@ -43,6 +43,8 @@ int   getBattery();
 int   getBrightness();
 int   getBatteryStatus();
 int   getMemPercent();
+int   getMemFree();
+char* getMemColor(int);
 void  getCpuUsage(int *cpu_percent);
 char* getDateTime();
 char* getActiveTask();
@@ -78,6 +80,8 @@ main(void)
   char *cpu_bar[CPU_NBR];
 
   int mem_percent;
+  int mem_free;
+  char* mem_free_color;
   char *mem_bar;
 
   char *fg_color = "#839496";
@@ -101,6 +105,8 @@ main(void)
     {
 
 	  mem_percent = getMemPercent();
+	  mem_free = getMemFree();
+      mem_free_color = getMemColor(mem_percent);
       percentColorGeneric(mem_color, mem_percent, 1);
 	  mem_bar = hBar(mem_percent, 20, 9,  mem_color, "#444444");
       temp = getTemperature();
@@ -120,7 +126,7 @@ main(void)
       int ret = snprintf(
                status, 
                MSIZE, 
-               "^c%s^%s[BRIGHT %d%%] [VOL %d%%] [CPU^f3^%s^f4^%s^f4^%s^f4^%s^f4^%s^f4^%s^f4^%s^f4^%s^f3^^c%s^] [MEM^f3^%s^f20^^c%s^] [W %d] [TEMP %d%cC] %s^c%s^ %s ", 
+               "^c%s^%s[BRIGHT %d%%] [VOL %d%%] [CPU^f3^%s^f4^%s^f4^%s^f4^%s^f4^%s^f4^%s^f4^%s^f4^%s^f3^^c%s^] [MEM ^c%s^%dMb^c%s^] [W %d] [TEMP %d%cC] %s^c%s^ %s ", 
              fg_color,
              task,
              bright,
@@ -134,7 +140,8 @@ main(void)
                cpu_bar[7],
                cpu_bar[8],
                fg_color,
-               mem_bar,
+               mem_free_color,
+               mem_free,
                fg_color,
                wifi,
                temp, CELSIUS_CHAR, 
@@ -358,6 +365,35 @@ getMemPercent()
 	return ((float)(mem_total-mem_available)/(float)mem_total) * 100;
 }
 
+int
+getMemFree()
+{
+	FILE *fd;
+	int mem_total;
+	int mem_free;
+	int mem_available;
+	fd = fopen(MEMINFO_FILE, "r");
+	if(fd == NULL) {
+		fprintf(stderr, "Error opening energy_full.\n");
+        return -1;
+	}
+	fscanf(fd, "MemTotal:%*[ ]%d kB\nMemFree:%*[ ]%d kB\nMemAvailable:%*[ ]%d", &mem_total, &mem_free, &mem_available);
+	fclose (fd);
+	return mem_free/1024;
+}
+
+char*
+getMemColor(int percent)
+{
+
+    if ((percent >= 75) && (percent < 90)) {
+        return "#b58900"; // solarized yellow
+    } else if (percent >= 90) {
+        return "#dc322f"; // solarized red
+    } else {
+        return "#839496";
+    }
+}
 
 void
 getCpuUsage(int* cpu_percent)
