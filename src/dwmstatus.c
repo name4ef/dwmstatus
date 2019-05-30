@@ -36,6 +36,7 @@
 #define BRIGHT_NOW_FILE "/sys/class/backlight/intel_backlight/brightness"
 #define BRIGHT_FULL_FILE "/sys/class/backlight/intel_backlight/max_brightness"
 #define TEMP_SENSOR_FILE "/sys/class/hwmon/hwmon1/temp1_input"
+#define FAN_SENSOR_FILE "/sys/class/hwmon/hwmon1/fan1_input"
 #define MEMINFO_FILE "/proc/meminfo"
 #define BUFFER_FOR_TASK 161 /* length of task name string in characters */
 
@@ -50,6 +51,7 @@ char* getDateTime();
 char* getActiveTask();
 float getFreq(char *file);
 int   getTemperature();
+int   getFan();
 int   getVolume();
 void  setStatus(Display *dpy, char *str);
 int   getWifiPercent();
@@ -76,7 +78,7 @@ main(void)
   int cpu_percent[CPU_NBR];
   char *datetime;
   char *task;
-  int temp, vol, wifi, bright;
+  int temp, vol, wifi, bright, fan;
   char *cpu_bar[CPU_NBR];
 
   int mem_percent;
@@ -110,6 +112,7 @@ main(void)
       percentColorGeneric(mem_color, mem_percent, 1);
 	  mem_bar = hBar(mem_percent, 20, 9,  mem_color, "#444444");
       temp = getTemperature();
+      fan = getFan();
       datetime = getDateTime();
       task = getActiveTask();
       getBatteryBar(bat0, 256, 30, 11);
@@ -126,7 +129,7 @@ main(void)
       int ret = snprintf(
                status, 
                MSIZE, 
-               "^c%s^%s[BRIGHT %d%%] [VOL %d%%] [CPU^f3^%s^f4^%s^f4^%s^f4^%s^f4^%s^f4^%s^f4^%s^f4^%s^f3^^c%s^] [MEM ^c%s^%dMb^c%s^] [W %d] [TEMP %d%cC] %s^c%s^ %s ", 
+               "^c%s^%s[BRIGHT %d%%] [VOL %d%%] [CPU^f3^%s^f4^%s^f4^%s^f4^%s^f4^%s^f4^%s^f4^%s^f4^%s^f3^^c%s^ %d%cC/%drpm] [MEM ^c%s^%dMb^c%s^] [W %d] %s^c%s^ %s ", 
              fg_color,
              task,
              bright,
@@ -140,11 +143,12 @@ main(void)
                cpu_bar[7],
                cpu_bar[8],
                fg_color,
+               temp, CELSIUS_CHAR, 
+               fan,
                mem_free_color,
                mem_free,
                fg_color,
                wifi,
-               temp, CELSIUS_CHAR, 
                bat0, fg_color, datetime
                );
       if(ret >= MSIZE)
@@ -578,6 +582,22 @@ getTemperature()
   fclose(fd);
   
   return temp / 1000;
+}
+
+int
+getFan()
+{
+  int fan;
+  FILE *fd = fopen(FAN_SENSOR_FILE, "r");
+  if(fd == NULL) 
+	  {
+		  fprintf(stderr, "Error opening fan1_input.\n");
+		  return -1;
+	  }
+  fscanf(fd, "%d", &fan);
+  fclose(fd);
+  
+  return fan;
 }
 
 int
